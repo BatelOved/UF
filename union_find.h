@@ -61,34 +61,29 @@ class UnionFind {
 public:
     UnionFind(int n);
     ~UnionFind();
-    std::shared_ptr<Element> Find(int i);
+    Element* Find(int i);
     void Union(int p, int q);
 };
 
 UnionFind::UnionFind(int n): n(n) {
     for (int i = 0; i < n; i++) {
-        std::shared_ptr<Element> new_element = (std::shared_ptr<Element>)new Element(i);
+        std::shared_ptr<Element> new_element = std::make_shared<Element>(i);
         elements.push_back(new_element);
-        groups.push_back(std::shared_ptr<Group>(new Group(new_element)));
+        groups.push_back(std::make_shared<Group>(new_element));
         elements[i]->setGroup(groups[i]);
     }
 }
 
-UnionFind::~UnionFind() {
-    for (int i = 0; i < n; i++) {
-        //delete elements[i].get();
-        //delete groups[i].get();
-    }
-}
+UnionFind::~UnionFind() {}
 
-std::shared_ptr<Element> UnionFind::Find(int i) {
+Element* UnionFind::Find(int i) {
     if (i < 0 || i > n || !elements[i].get())
         return NULL;
-    std::shared_ptr<Element> element = (std::shared_ptr<Element>)elements[i].get();
-    std::shared_ptr<Element> parent = elements[i].get()->getParent();
+    Element* element = elements[i].get();
+    Element* parent = elements[i].get()->getParent().get();
     while (parent) {
         element = parent;
-        parent = parent->getParent();
+        parent = parent->getParent().get();
     }
     return element;
 }
@@ -96,14 +91,14 @@ std::shared_ptr<Element> UnionFind::Find(int i) {
 void UnionFind::Union(int p, int q) {
     if (p < 0 || p > n || q < 0 || q > n)
         return;
-    std::shared_ptr<Element> p1 = Find(p);
-    std::shared_ptr<Element> p2 = Find(q);
+    Element* p1 = Find(p);
+    Element* p2 = Find(q);
     if (p1->getGroup()->getSize() > p2->getGroup()->getSize()) {
-        p2->setParent(p1);
+        p2->setParent(std::shared_ptr<Element>(p1));
         p2->getGroup()->updateSize(p1->getGroup()->getSize() + p2->getGroup()->getSize());
     }
     else {
-        p1->setParent(p2);
+        p1->setParent(std::shared_ptr<Element>(p2));
         p1->getGroup()->updateSize(p1->getGroup()->getSize() + p2->getGroup()->getSize());
     }
 }
