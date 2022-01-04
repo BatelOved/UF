@@ -17,25 +17,32 @@ class Element;
 // TODO: change data type to std::shared_ptr<T>.
 class Element {
     int data;
+    int group;
     std::shared_ptr<Element> parent;
-    std::shared_ptr<Group> group;
 public:
-    Element(int data);
+    Element(int data = 0);
+
     std::shared_ptr<Element> getParent();
+
     void setParent(std::shared_ptr<Element> new_parent);
-    std::shared_ptr<Group> getGroup();
-    void setGroup(std::shared_ptr<Group> new_group);
+
+    int getGroup();
+
+    void setGroup(int new_group);
+    
+    ~Element() = default;
 };
 
-Element::Element(int data): data(data), parent(nullptr), group(nullptr) {}
+Element::Element(int data): data(data), group(data), parent() {}
 
 std::shared_ptr<Element> Element::getParent() { return parent; }
 
 void Element::setParent(std::shared_ptr<Element> new_parent) { parent = new_parent; }
 
-std::shared_ptr<Group> Element::getGroup() { return group; }
+int Element::getGroup() { return group; }
 
-void Element::setGroup(std::shared_ptr<Group> new_group) { group = new_group; }
+void Element::setGroup(int new_group) { group = new_group; }
+
 
 /* Group class */
 class Group {
@@ -43,15 +50,28 @@ class Group {
     int size;
 public:
     Group(std::shared_ptr<Element> root);
-    void updateSize(int new_size);
+
+    void setSize(int new_size);
+
     int getSize();
+
+    void setRoot(std::shared_ptr<Element> new_root);
+
+    std::shared_ptr<Element> getRoot();
+
+    ~Group() = default;
 };
 
-Group::Group(std::shared_ptr<Element> root): root(std::shared_ptr<Element>(root)), size(1) {}
+Group::Group(std::shared_ptr<Element> root): root(root), size(1) {}
 
-void Group::updateSize(int new_size) { size = new_size; }
+void Group::setSize(int new_size) { size = new_size; }
 
 int Group::getSize() { return size; }
+
+void Group::setRoot(std::shared_ptr<Element> new_root) { root = new_root; }
+
+std::shared_ptr<Element> Group::getRoot() { return root; }
+
 
 /* UnionFind class */
 class UnionFind {
@@ -60,49 +80,54 @@ class UnionFind {
     int n;
 public:
     UnionFind(int n);
-    ~UnionFind();
-    Element* Find(int i);
+
+    std::shared_ptr<Element> Find(int i);
+
     void Union(int p, int q);
+
+    ~UnionFind() = default;
 };
 
 UnionFind::UnionFind(int n): n(n) {
     for (int i = 0; i < n; i++) {
-        std::shared_ptr<Element> new_element = std::make_shared<Element>(i);
-        elements.push_back(new_element);
-        groups.push_back(std::make_shared<Group>(new_element));
-        elements[i]->setGroup(groups[i]);
+        elements.push_back(std::make_shared<Element>(i));
+        groups.push_back(std::make_shared<Group>(elements[i]));
     }
 }
 
-UnionFind::~UnionFind() {}
-
-Element* UnionFind::Find(int i) {
-    if (i < 0 || i > n || !elements[i].get())
+std::shared_ptr<Element> UnionFind::Find(int i) {
+    if (i < 0 || i > n-1 || !elements[i].get())
         return NULL;
-    Element* element = elements[i].get();
-    Element* parent = elements[i].get()->getParent().get();
+    std::shared_ptr<Element> root = elements[i];
+    std::shared_ptr<Element> parent = elements[i]->getParent();
     while (parent) {
-        element = parent;
-        parent = parent->getParent().get();
+        root = parent;
+        parent = parent->getParent();
     }
-    return element;
+    std::shared_ptr<Element> element_tmp = elements[i];
+    std::shared_ptr<Element> parent_tmp = elements[i]->getParent();
+    while (parent_tmp) {
+        element_tmp->setParent(root);
+        element_tmp = parent_tmp;
+        parent_tmp = parent_tmp->getParent();
+    }
+
+    return root;
 }
 
 void UnionFind::Union(int p, int q) {
-    if (p < 0 || p > n || q < 0 || q > n)
+    if (p < 0 || p > n-1 || q < 0 || q > n-1)
         return;
-    Element* p1 = Find(p);
-    Element* p2 = Find(q);
-    if (p1->getGroup()->getSize() > p2->getGroup()->getSize()) {
-        p2->setParent(std::shared_ptr<Element>(p1));
-        p2->getGroup()->updateSize(p1->getGroup()->getSize() + p2->getGroup()->getSize());
+    std::shared_ptr<Element> p1 = Find(p);
+    std::shared_ptr<Element> p2 = Find(q);
+    if (groups[p1->getGroup()]->getSize() > groups[p2->getGroup()]->getSize()) {
+        p2->setParent(p1);
+        groups[p1->getGroup()]->setSize(groups[p1->getGroup()]->getSize() + groups[p2->getGroup()]->getSize());
     }
     else {
-        p1->setParent(std::shared_ptr<Element>(p2));
-        p1->getGroup()->updateSize(p1->getGroup()->getSize() + p2->getGroup()->getSize());
+        p1->setParent(p2);
+        groups[p2->getGroup()]->setSize(groups[p1->getGroup()]->getSize() + groups[p2->getGroup()]->getSize());
     }
 }
-
-
 
 #endif /* UNION_FIND */
