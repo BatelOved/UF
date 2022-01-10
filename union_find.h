@@ -7,9 +7,7 @@
  * @date   Jan-2021
 */
 
-#include <vector>
 #include <memory>
-
 
 /* Group class */
 template <typename T>
@@ -35,7 +33,7 @@ public:
 /* UnionFind class */
 template <typename T>
 class UnionFind {
-    std::vector<std::shared_ptr<Group<T>>> groups;
+    std::shared_ptr<Group<T>>* groups;
     int numOfGroups;
 public:
     UnionFind(int numOfGroups);
@@ -44,15 +42,17 @@ public:
 
     int Find(int i);
 
+    ~UnionFind();
+
     const int NO_PARENT = -1;
 
     const int FAILURE   = -1;
 };
 
 template <typename T>
-UnionFind<T>::UnionFind(int numOfGroups): numOfGroups(numOfGroups) {
+UnionFind<T>::UnionFind(int numOfGroups): groups(new std::shared_ptr<Group<T>>[numOfGroups]), numOfGroups(numOfGroups) {
     for (int i = 0; i < numOfGroups; i++) {
-        groups.push_back(std::make_shared<Group<T>>());
+        groups[i] = std::make_shared<Group<T>>();
     }
 }
 
@@ -69,22 +69,10 @@ void UnionFind<T>::Union(int p, int q) {
         groups[g_group]->setParent(-1);
         groups[p_group]->setParent(g_group);
     }
-    else if (groups[p_group]->getSize() > groups[g_group]->getSize()) {
+    else {
         groups[p_group]->setSize(groups[p_group]->getSize() + groups[g_group]->getSize());
         groups[p_group]->setParent(-1);
         groups[g_group]->setParent(p_group);
-    }
-    else {
-        if (p_group < g_group) {
-            groups[g_group]->setSize(groups[p_group]->getSize() + groups[g_group]->getSize());
-            groups[g_group]->setParent(-1);
-            groups[p_group]->setParent(g_group);
-        }
-        else {
-            groups[p_group]->setSize(groups[p_group]->getSize() + groups[g_group]->getSize());
-            groups[p_group]->setParent(-1);
-            groups[g_group]->setParent(p_group);
-        }
     }
 }
 
@@ -105,6 +93,11 @@ int UnionFind<T>::Find(int i) {
         group_parent = groups[group_parent]->getParent();
     }
     return group;
+}
+
+template <typename T>
+UnionFind<T>::~UnionFind() {
+    delete[] groups;
 }
 
 
