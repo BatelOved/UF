@@ -10,157 +10,102 @@
 #include <vector>
 #include <memory>
 
-template <typename T>
-class Element;
-template <typename T>
-class Group;
-
-/* Element class */
-template <typename T>
-class Element {
-    int group;
-    std::shared_ptr<T> data;
-    std::shared_ptr<Element> parent;
-public:
-    Element(int group = 0, std::shared_ptr<T> data = nullptr);
-
-    std::shared_ptr<Element> getParent() const;
-
-    void setParent(std::shared_ptr<Element> new_parent);
-
-    int getGroup();
-
-    void setGroup(int new_group);
-};
-
-template <typename T>
-Element<T>::Element(int group, std::shared_ptr<T> data): group(group), data(data), parent(nullptr) {}
-
-template <typename T>
-std::shared_ptr<Element<T>> Element<T>::getParent() const { return parent; }
-
-template <typename T>
-void Element<T>::setParent(std::shared_ptr<Element<T>> new_parent) { parent = new_parent; }
-
-template <typename T>
-int Element<T>::getGroup() {
-    if (!parent)
-        return group;
-    std::shared_ptr<Element<T>> p = getParent();
-    while (p)
-        p = p.get()->getParent();
-    group = p.get()->getGroup();
-    return group; 
-}
-
-template <typename T>
-void Element<T>::setGroup(int new_group) { group = new_group; }
-
 
 /* Group class */
 template <typename T>
 class Group {
-    std::shared_ptr<Element<T>> root;
+    std::shared_ptr<T> data;
+    int parent;
     int size;
 public:
-    Group(std::shared_ptr<Element<T>> root);
+    Group(): data(std::make_shared<T>()), parent(-1), size(1) {}
 
-    void setSize(int new_size);
+    void setData(std::shared_ptr<T> new_data) { data = new_data; }
 
-    int getSize() const;
+    void setParent(int new_parent) { parent = new_parent; }
 
-    void setRoot(std::shared_ptr<Element<T>> new_root);
+    int getParent() const { return parent; }
 
-    std::shared_ptr<Element<T>> getRoot();
+    void setSize(int new_size) { size = new_size; }
+
+    int getSize() const { return size; }
 };
-
-template <typename T>
-Group<T>::Group(std::shared_ptr<Element<T>> root): root(root), size(1) {}
-
-template <typename T>
-void Group<T>::setSize(int new_size) { size = new_size; }
-
-template <typename T>
-int Group<T>::getSize() const { return size; }
-
-template <typename T>
-void Group<T>::setRoot(std::shared_ptr<Element<T>> new_root) { root = new_root; }
-
-template <typename T>
-
-std::shared_ptr<Element<T>> Group<T>::getRoot() { return root; }
 
 
 /* UnionFind class */
 template <typename T>
 class UnionFind {
-    std::vector<std::shared_ptr<Element<T>>> elements;
     std::vector<std::shared_ptr<Group<T>>> groups;
-    int n;
+    int numOfGroups;
 public:
-    UnionFind(int n = 0);
-
-    void makeSet(std::shared_ptr<Element<T>> element);
-
-    std::shared_ptr<Element<T>> Find(int i);
+    UnionFind(int numOfGroups);
 
     void Union(int p, int q);
+
+    int Find(int i);
+
+    const int NO_PARENT = -1;
+
+    const int FAILURE   = -1;
 };
 
 template <typename T>
-UnionFind<T>::UnionFind(int n): n(n) {
-    for (int i = 0; i < n; i++) {
-        elements.push_back(std::make_shared<Element<T>>(i));
-        groups.push_back(std::make_shared<Group<T>>(elements[i]));
+UnionFind<T>::UnionFind(int numOfGroups): numOfGroups(numOfGroups) {
+    for (int i = 0; i < numOfGroups; i++) {
+        groups.push_back(std::make_shared<Group<T>>());
     }
-}
-
-template <typename T>
-void UnionFind<T>::makeSet(std::shared_ptr<Element<T>> element) {
-    elements.push_back(std::make_shared<Element<T>>(element));
-    groups.push_back(std::make_shared<Group<T>>(element));
-    ++n;
-}
-
-template <typename T>
-std::shared_ptr<Element<T>> UnionFind<T>::Find(int i) {
-    if (i < 0 || i > n-1 || !elements[i].get())
-        return nullptr;
-    std::shared_ptr<Element<T>> root = elements[i];
-    std::shared_ptr<Element<T>> parent = elements[i]->getParent();
-    while (parent) {
-        root = parent;
-        parent = parent->getParent();
-    }
-    std::shared_ptr<Element<T>> element_tmp = elements[i];
-    std::shared_ptr<Element<T>> parent_tmp = elements[i]->getParent();
-    while (parent_tmp) {
-        element_tmp->setParent(root);
-        element_tmp = parent_tmp;
-        parent_tmp = parent_tmp->getParent();
-    }
-
-    return root;
 }
 
 template <typename T>
 void UnionFind<T>::Union(int p, int q) {
-    if (p < 0 || p > n-1 || q < 0 || q > n-1 || p == q)
+    if (p < 0 || p > numOfGroups-1 || q < 0 || q > numOfGroups-1)
         return;
-    std::shared_ptr<Element<T>> p1 = Find(p);
-    std::shared_ptr<Element<T>> p2 = Find(q);
-    if (p1 == p2)
+    int p_group = Find(p);
+    int g_group = Find(q);
+    if (p_group == g_group)
         return;
-    if (groups[p1->getGroup()]->getSize() < groups[p2->getGroup()]->getSize()) {
-        groups[p2->getGroup()]->setSize(groups[p1->getGroup()]->getSize() + groups[p2->getGroup()]->getSize());
-        groups[p1->getGroup()]->setRoot(nullptr);
-        p1->setParent(p2);
+    if (groups[p_group]->getSize() < groups[g_group]->getSize()) {
+        groups[g_group]->setSize(groups[p_group]->getSize() + groups[g_group]->getSize());
+        groups[g_group]->setParent(-1);
+        groups[p_group]->setParent(g_group);
+    }
+    else if (groups[p_group]->getSize() > groups[g_group]->getSize()) {
+        groups[p_group]->setSize(groups[p_group]->getSize() + groups[g_group]->getSize());
+        groups[p_group]->setParent(-1);
+        groups[g_group]->setParent(p_group);
     }
     else {
-        groups[p1->getGroup()]->setSize(groups[p1->getGroup()]->getSize() + groups[p2->getGroup()]->getSize());
-        groups[p2->getGroup()]->setRoot(nullptr);
-        p2->setParent(p1);
+        if (p_group < g_group) {
+            groups[g_group]->setSize(groups[p_group]->getSize() + groups[g_group]->getSize());
+            groups[g_group]->setParent(-1);
+            groups[p_group]->setParent(g_group);
+        }
+        else {
+            groups[p_group]->setSize(groups[p_group]->getSize() + groups[g_group]->getSize());
+            groups[p_group]->setParent(-1);
+            groups[g_group]->setParent(p_group);
+        }
     }
 }
+
+template <typename T>
+int UnionFind<T>::Find(int i) {
+    if (i < 0 || i > numOfGroups-1)
+        return FAILURE;
+    int group = i;
+    int group_parent = groups[i]->getParent();
+    while (group_parent != -1) {
+        group = group_parent;
+        group_parent = groups[group_parent]->getParent();
+    }
+    group_parent = groups[i]->getParent();
+    while (group_parent != -1) {
+        groups[i]->setParent(group);
+        i = group_parent;
+        group_parent = groups[group_parent]->getParent();
+    }
+    return group;
+}
+
 
 #endif /* UNION_FIND */
