@@ -22,6 +22,8 @@ public:
 
     void setData(std::shared_ptr<T> new_data) { data = new_data; }
 
+    std::shared_ptr<T> getData() { return data; }
+
     void setParent(int new_parent) { parent = new_parent; }
 
     int getParent() const { return parent; }
@@ -48,6 +50,10 @@ public:
     void Union(int p, int q);
 
     int Find(int i);
+
+    void setData(int i, std::shared_ptr<T> new_data);
+
+    std::shared_ptr<T> getData(int i);
 
     ~UnionFind();
 };
@@ -96,6 +102,16 @@ int UnionFind<T>::Find(int i) {
         group_parent = groups[group_parent]->getParent();
     }
     return group;
+}
+
+template<typename T>
+void UnionFind<T>::setData(int i, std::shared_ptr<T> new_data) {
+    groups[i]->setData(new_data);
+}
+
+template<typename T>
+std::shared_ptr<T> UnionFind<T>::getData(int i) {
+    return groups[i]->getData();
 }
 
 template <typename T>
