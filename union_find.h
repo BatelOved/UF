@@ -16,7 +16,9 @@ class Group {
     int parent;
     int size;
 public:
-    Group(): data(std::make_shared<T>()), parent(-1), size(1) {}
+    enum { NO_PARENT = -1 };
+
+    Group(): data(std::make_shared<T>()), parent(NO_PARENT), size(1) {}
 
     void setData(std::shared_ptr<T> new_data) { data = new_data; }
 
@@ -36,6 +38,11 @@ class UnionFind {
     std::shared_ptr<Group<T>>* groups;
     int numOfGroups;
 public:
+    enum {
+        NO_PARENT = -1,
+        FAILURE   = -1
+    };
+
     UnionFind(int numOfGroups);
 
     void Union(int p, int q);
@@ -43,10 +50,6 @@ public:
     int Find(int i);
 
     ~UnionFind();
-
-    const int NO_PARENT = -1;
-
-    const int FAILURE   = -1;
 };
 
 template <typename T>
@@ -66,12 +69,12 @@ void UnionFind<T>::Union(int p, int q) {
         return;
     if (groups[p_group]->getSize() < groups[g_group]->getSize()) {
         groups[g_group]->setSize(groups[p_group]->getSize() + groups[g_group]->getSize());
-        groups[g_group]->setParent(-1);
+        groups[g_group]->setParent(NO_PARENT);
         groups[p_group]->setParent(g_group);
     }
     else {
         groups[p_group]->setSize(groups[p_group]->getSize() + groups[g_group]->getSize());
-        groups[p_group]->setParent(-1);
+        groups[p_group]->setParent(NO_PARENT);
         groups[g_group]->setParent(p_group);
     }
 }
@@ -82,12 +85,12 @@ int UnionFind<T>::Find(int i) {
         return FAILURE;
     int group = i;
     int group_parent = groups[i]->getParent();
-    while (group_parent != -1) {
+    while (group_parent != NO_PARENT) {
         group = group_parent;
         group_parent = groups[group_parent]->getParent();
     }
     group_parent = groups[i]->getParent();
-    while (group_parent != -1) {
+    while (group_parent != NO_PARENT) {
         groups[i]->setParent(group);
         i = group_parent;
         group_parent = groups[group_parent]->getParent();
